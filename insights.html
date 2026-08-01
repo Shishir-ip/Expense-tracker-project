@@ -1,0 +1,2495 @@
+<!-- ========== AI INSIGHTS PAGE - PART 1 OF 2 ========== -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Insights - Expense Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 20px 25px -5px rgba(0,0,0,0.1);
+            --ai-purple: #8b5cf6;
+            --ai-blue: #06b6d4;
+            --ai-pink: #ec4899;
+            --ai-glow: #8b5cf6;
+            --ai-gradient: linear-gradient(135deg, #8b5cf6, var(--primary), #06b6d4);
+        }
+
+        .dark {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: all 0.3s;
+        }
+
+        /* Security Block Screen */
+        .security-block {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .security-block.active {
+            display: flex;
+            animation: fadeIn 0.5s;
+        }
+
+        .security-block i {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.8;
+        }
+
+        .security-block h2 {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .security-block p {
+            opacity: 0.7;
+            margin-bottom: 2rem;
+            max-width: 400px;
+        }
+
+        .security-block .btn {
+            background: white;
+            color: #312e81;
+            padding: 0.875rem 2rem;
+            border-radius: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .security-block .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        /* Loading Screen */
+        .insights-loading {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s;
+        }
+
+        .insights-loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .insights-loading-spinner {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 4px solid var(--border);
+            border-top-color: var(--ai-purple);
+            animation: spin 1s linear infinite;
+            margin-bottom: 1.5rem;
+        }
+
+        .insights-loading h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--ai-purple), var(--ai-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .insights-loading p {
+            color: var(--text-secondary);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Layout */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: none;
+        }
+
+        .app-container.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--ai-purple), var(--ai-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 1.1rem;
+        }
+
+        .btn-icon:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* AI Hero Section */
+        .ai-hero {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--ai-purple), var(--ai-blue), var(--ai-pink));
+        }
+
+        .ai-hero-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .ai-hero-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--ai-purple), var(--ai-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.75rem;
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+        }
+
+        .ai-hero-title h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+        }
+
+        .ai-hero-title p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .ai-hero-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .ai-hero-stat {
+            background: var(--card);
+            padding: 1.25rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .ai-hero-stat:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .ai-hero-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .ai-hero-stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--ai-purple), var(--ai-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Main Grid */
+        .insights-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 968px) {
+            .insights-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .insight-card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .insight-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--ai-purple), var(--ai-blue));
+            border-radius: 20px 20px 0 0;
+        }
+
+        .insight-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .insight-card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .insight-card-badge {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--ai-purple);
+            font-weight: 700;
+        }
+
+        /* AI Recommendation Box */
+        .ai-recommendation {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(6, 182, 212, 0.05));
+            border: 1px dashed var(--ai-purple);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .ai-recommendation-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            color: var(--ai-purple);
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .ai-recommendation-text {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text);
+        }
+
+        /* Prediction Cards */
+        .prediction-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 640px) {
+            .prediction-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .prediction-card {
+            background: var(--bg);
+            border-radius: 14px;
+            padding: 1.25rem;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .prediction-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .prediction-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .prediction-card-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.35rem;
+            font-weight: 600;
+        }
+
+        .prediction-card-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        /* Progress Rings */
+        .progress-ring-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            padding: 1rem 0;
+        }
+
+        .progress-ring-item {
+            text-align: center;
+        }
+
+        .progress-ring {
+            position: relative;
+            width: 120px;
+            height: 120px;
+        }
+
+        .progress-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-bg {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 8;
+        }
+
+        .progress-ring-fill {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease;
+        }
+
+        .progress-ring-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .progress-ring-label {
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* Heatmap Grid */
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.35rem;
+            margin-top: 1rem;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.15);
+            z-index: 2;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .heatmap-legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .heatmap-legend-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Comparison Bars */
+        .comparison-item {
+            margin-bottom: 1rem;
+        }
+
+        .comparison-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .comparison-bar-container {
+            display: flex;
+            height: 32px;
+            background: var(--bg);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .comparison-bar-this {
+            height: 100%;
+            border-radius: 8px 0 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: width 1s ease;
+        }
+
+        .comparison-bar-last {
+            height: 100%;
+            border-radius: 0 8px 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: width 1s ease;
+        }
+
+        /* Goal Tracker */
+        .goal-item {
+            background: var(--bg);
+            border-radius: 14px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .goal-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .goal-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        .goal-status.on-track {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .goal-status.at-risk {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .goal-status.over {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .goal-progress-bar {
+            height: 10px;
+            background: var(--border);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .goal-progress-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+
+        .goal-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* ========== FIXED: AI Full Chat Section (OpenRouter) ========== */
+        .ai-full-chat {
+            background: var(--card);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .ai-full-chat-header {
+            background: var(--ai-gradient);
+            color: white;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ai-full-chat-header h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ai-full-chat-header-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .ai-full-chat-header-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .ai-full-chat-header-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        .ai-full-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            background: var(--bg);
+            scroll-behavior: smooth;
+        }
+
+        .ai-full-chat-message {
+            max-width: 80%;
+            padding: 0.875rem 1.25rem;
+            border-radius: 18px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            animation: slideUp 0.3s ease;
+            word-wrap: break-word;
+        }
+
+        .ai-full-chat-message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-full-chat-message.ai {
+            align-self: flex-start;
+            background: var(--card);
+            color: var(--text);
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .ai-full-chat-message.ai .ai-message-header {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #8b5cf6;
+            margin-bottom: 0.35rem;
+        }
+
+        .ai-full-chat-message.ai .ai-message-body { line-height: 1.6; }
+        .ai-full-chat-message.ai .ai-message-body p { margin-bottom: 0.5rem; }
+        .ai-full-chat-message.ai .ai-message-body p:last-child { margin-bottom: 0; }
+        .ai-full-chat-message.ai .ai-message-body strong {
+            color: var(--primary);
+            font-weight: 700;
+        }
+        .ai-full-chat-message.ai .ai-message-body ul,
+        .ai-full-chat-message.ai .ai-message-body ol {
+            margin: 0.5rem 0 0.5rem 1.25rem;
+            padding-left: 0.5rem;
+        }
+        .ai-full-chat-message.ai .ai-message-body li { margin-bottom: 0.25rem; }
+        .ai-full-chat-message.ai .ai-message-body code {
+            background: rgba(139, 92, 246, 0.1);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #8b5cf6;
+        }
+        .ai-full-chat-message.ai .ai-message-body pre {
+            background: rgba(139, 92, 246, 0.08);
+            padding: 0.75rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+            border: 1px solid var(--border);
+        }
+        .ai-full-chat-message.ai .ai-message-body pre code {
+            background: none;
+            padding: 0;
+            color: var(--text);
+        }
+        .ai-full-chat-message.ai .ai-message-body blockquote {
+            border-left: 3px solid var(--primary);
+            padding-left: 0.75rem;
+            margin: 0.5rem 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .ai-message-actions {
+            display: flex;
+            gap: 0.35rem;
+            margin-top: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .ai-full-chat-message.ai:hover .ai-message-actions { opacity: 1; }
+
+        .ai-message-action-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .ai-message-action-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .streaming-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--primary);
+            animation: blink 1s infinite;
+            vertical-align: text-bottom;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .ai-full-chat-input-area {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+            background: var(--card);
+        }
+
+        .ai-full-chat-input-wrapper { flex: 1; position: relative; }
+
+        .ai-full-chat-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.9rem;
+            outline: none;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .ai-full-chat-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .ai-full-chat-send {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: none;
+            background: var(--ai-gradient);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .ai-full-chat-send:hover { transform: scale(1.1) rotate(-5deg); }
+        .ai-full-chat-send:active { transform: scale(0.95); }
+        .ai-full-chat-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Quick Question Chips */
+        .quick-chips {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding: 0.75rem 1.5rem;
+            border-top: 1px solid var(--border);
+            background: var(--card);
+        }
+
+        .quick-chip {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-chip:hover {
+            background: var(--ai-purple);
+            color: white;
+            border-color: var(--ai-purple);
+            transform: translateY(-1px);
+        }
+
+        /* AI Loading in Chat */
+        .ai-chat-typing {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0;
+        }
+
+        .ai-chat-typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--ai-purple);
+            animation: aiTyping 1.4s infinite ease-in-out both;
+        }
+
+        .ai-chat-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .ai-chat-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes aiTyping {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Section Divider */
+        .section-divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 2rem 0 1.5rem;
+        }
+
+        .section-divider-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .section-divider-text {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            margin: 1rem 0;
+        }
+
+        .chart-container-lg {
+            height: 300px;
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 0.875rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table tr:hover td {
+            background: var(--bg);
+        }
+
+        /* Animations */
+        .animate-in {
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .toast {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            border-radius: 14px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideInRight 0.3s ease-out;
+            min-width: 300px;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .ai-hero-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .prediction-grid {
+                grid-template-columns: 1fr;
+            }
+            .progress-ring-container {
+                gap: 1rem;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .ai-full-chat {
+                height: 500px;
+            }
+            .ai-full-chat-message {
+                max-width: 90%;
+            }
+            .toast-container {
+                right: 0.5rem;
+                left: 0.5rem;
+                bottom: 1rem;
+            }
+            .toast {
+                min-width: auto;
+            }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body class="dark">
+
+<!-- Security Block Screen -->
+<div class="security-block" id="securityBlock">
+    <i class="fas fa-shield-alt"></i>
+    <h2>Access Denied</h2>
+    <p>This page requires an active session. Please login through the main app first.</p>
+    <a href="index.html" class="btn">
+        <i class="fas fa-arrow-left"></i> Go to Login
+    </a>
+</div>
+
+<!-- Loading Screen -->
+<div class="insights-loading" id="insightsLoading">
+    <div class="insights-loading-spinner"></div>
+    <h2>AI Analyzing Your Data</h2>
+    <p>Generating advanced insights...</p>
+</div>
+
+<!-- Main App -->
+<div class="app-container" id="appContainer">
+    
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">
+            <i class="fas fa-brain"></i>
+            AI Insights
+        </div>
+        <div class="header-actions">
+            <button class="btn-icon" onclick="window.location.href='index.html'" title="Back to Dashboard">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <button class="btn-icon" onclick="toggleTheme()" title="Toggle Theme">
+                <i class="fas fa-sun" id="themeIcon"></i>
+            </button>
+            <button class="btn-icon" onclick="regenerateInsights()" title="Regenerate Insights">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- AI Hero Section -->
+    <div class="ai-hero animate-in">
+        <div class="ai-hero-header">
+            <div class="ai-hero-icon">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="ai-hero-title">
+                <h1>Financial Intelligence Dashboard</h1>
+                <p>AI-powered analysis of your spending patterns, predictions, and recommendations</p>
+            </div>
+        </div>
+        <div class="ai-hero-stats" id="aiHeroStats">
+            <div class="ai-hero-stat">
+                <div class="ai-hero-stat-label">AI Confidence</div>
+                <div class="ai-hero-stat-value" id="aiConfidence">92%</div>
+            </div>
+            <div class="ai-hero-stat">
+                <div class="ai-hero-stat-label">Data Points</div>
+                <div class="ai-hero-stat-value" id="aiDataPoints">0</div>
+            </div>
+            <div class="ai-hero-stat">
+                <div class="ai-hero-stat-label">Trend Direction</div>
+                <div class="ai-hero-stat-value" id="aiTrend"><i class="fas fa-arrow-trend-up"></i></div>
+            </div>
+            <div class="ai-hero-stat">
+                <div class="ai-hero-stat-label">Health Score</div>
+                <div class="ai-hero-stat-value" id="aiHealthScore">B+</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insights Grid -->
+    <div class="insights-grid">
+        
+        <!-- Spending Predictions -->
+        <div class="insight-card animate-in stagger-1">
+            <div class="insight-card-header">
+                <div class="insight-card-title">
+                    <i class="fas fa-chart-line" style="color: var(--ai-purple);"></i>
+                    AI Spending Predictions
+                </div>
+                <span class="insight-card-badge">AI</span>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Based on your historical patterns, here's what AI predicts:
+            </p>
+            <div class="prediction-grid" id="predictionGrid">
+                <div class="prediction-card">
+                    <div class="prediction-card-icon" style="background: rgba(139, 92, 246, 0.15); color: var(--ai-purple);">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="prediction-card-label">Tomorrow</div>
+                    <div class="prediction-card-value" id="predTomorrow" style="color: var(--ai-purple);">৳0</div>
+                </div>
+                <div class="prediction-card">
+                    <div class="prediction-card-icon" style="background: rgba(6, 182, 212, 0.15); color: var(--ai-blue);">
+                        <i class="fas fa-calendar-week"></i>
+                    </div>
+                    <div class="prediction-card-label">This Week</div>
+                    <div class="prediction-card-value" id="predWeek" style="color: var(--ai-blue);">৳0</div>
+                </div>
+                <div class="prediction-card">
+                    <div class="prediction-card-icon" style="background: rgba(236, 72, 153, 0.15); color: var(--ai-pink);">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="prediction-card-label">This Month</div>
+                    <div class="prediction-card-value" id="predMonth" style="color: var(--ai-pink);">৳0</div>
+                </div>
+            </div>
+            <div class="ai-recommendation" id="predictionRecommendation">
+                <div class="ai-recommendation-header">
+                    <i class="fas fa-lightbulb"></i> AI Recommendation
+                </div>
+                <div class="ai-recommendation-text" id="predictionRecText">
+                    Analyzing your spending patterns...
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Budget Progress Rings -->
+        <div class="insight-card animate-in stagger-2">
+            <div class="insight-card-header">
+                <div class="insight-card-title">
+                    <i class="fas fa-bullseye" style="color: var(--danger);"></i>
+                    Budget Progress Rings
+                </div>
+                <span class="insight-card-badge">LIVE</span>
+            </div>
+            <div class="progress-ring-container" id="progressRingContainer">
+                <!-- Rings injected by JS -->
+            </div>
+        </div>
+
+        <!-- Spending Heatmap -->
+        <div class="insight-card animate-in stagger-3">
+            <div class="insight-card-header">
+                <div class="insight-card-title">
+                    <i class="fas fa-fire" style="color: var(--warning);"></i>
+                    30-Day Spending Heatmap
+                </div>
+                <span class="insight-card-badge">VISUAL</span>
+            </div>
+            <div class="heatmap-grid" id="heatmapGrid">
+                <!-- Heatmap cells injected by JS -->
+            </div>
+            <div class="heatmap-legend">
+                <span>Low</span>
+                <div class="heatmap-legend-box" style="background: #e2e8f0;"></div>
+                <div class="heatmap-legend-box" style="background: #a78bfa;"></div>
+                <div class="heatmap-legend-box" style="background: #8b5cf6;"></div>
+                <div class="heatmap-legend-box" style="background: #7c3aed;"></div>
+                <div class="heatmap-legend-box" style="background: #ef4444;"></div>
+                <span>High</span>
+            </div>
+        </div>
+
+        <!-- Month Comparison -->
+        <div class="insight-card animate-in stagger-1">
+            <div class="insight-card-header">
+                <div class="insight-card-title">
+                    <i class="fas fa-balance-scale" style="color: var(--success);"></i>
+                    Month-over-Month Comparison
+                </div>
+                <span class="insight-card-badge">COMPARE</span>
+            </div>
+            <div id="comparisonContainer">
+                <!-- Comparison bars injected by JS -->
+            </div>
+        </div>
+
+    </div> <!-- /insights-grid -->
+
+    <!-- Section Divider -->
+    <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-text"><i class="fas fa-robot"></i> AI Financial Advisor</div>
+        <div class="section-divider-line"></div>
+    </div>
+
+    <!-- ========== FIXED: Full AI Chat (OpenRouter with Streaming) ========== -->
+    <div class="ai-full-chat" id="aiFullChat">
+        <div class="ai-full-chat-header">
+            <h2><i class="fas fa-robot"></i> Ask Your Financial AI</h2>
+            <div class="ai-full-chat-header-actions">
+                <span style="font-size: 0.8rem; opacity: 0.8;">Powered by OpenRouter</span>
+                <button class="ai-full-chat-header-btn" onclick="clearFullAIChat()" title="Clear Chat">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>
+        <div class="ai-full-chat-messages" id="aiFullChatMessages">
+            <div class="ai-full-chat-message ai">
+                <div class="ai-message-header"><i class="fas fa-robot"></i> AI Assistant</div>
+                <div class="ai-message-body">Welcome to your advanced financial insights! I'm powered by OpenRouter. Ask me anything about your spending, budgets, or financial tips!</div>
+            </div>
+        </div>
+        <div class="quick-chips" id="quickChips">
+            <button class="quick-chip" onclick="sendQuickQuestion('How much did I spend on food this month?')">Food this month</button>
+            <button class="quick-chip" onclick="sendQuickQuestion('What was my most expensive purchase?')">Most expensive</button>
+            <button class="quick-chip" onclick="sendQuickQuestion('How can I reduce my spending?')">Save money tips</button>
+            <button class="quick-chip" onclick="sendQuickQuestion('Compare this month vs last month')">Month comparison</button>
+            <button class="quick-chip" onclick="sendQuickQuestion('When did I last buy khichuri?')">Last khichuri</button>
+            <button class="quick-chip" onclick="sendQuickQuestion('Am I on track with my budget?')">Budget status</button>
+        </div>
+        <div class="ai-full-chat-input-area">
+            <div class="ai-full-chat-input-wrapper">
+                <textarea class="ai-full-chat-input" id="aiFullChatInput" placeholder="Ask anything about your finances..." rows="1" onkeydown="handleFullChatInput(event)"></textarea>
+            </div>
+            <button class="ai-full-chat-send" id="aiFullChatSend" onclick="sendFullAIChat()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Section Divider -->
+    <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-text"><i class="fas fa-chart-pie"></i> Deep Analytics</div>
+        <div class="section-divider-line"></div>
+    </div>
+
+    <!-- Deep Analytics Grid -->
+    <div class="insights-grid">
+        
+        <!-- Category Deep Dive -->
+        <div class="insight-card animate-in">
+            <div class="insight-card-header">
+                <div class="insight-card-title">
+                    <i class="fas fa-layer-group" style="color: var(--primary);"></i>
+                    Category Deep Dive
+                </div>
+            </div>
+            <div class="chart-container" id="categoryDeepChartContainer">
+                <canvas id="categoryDeepChart"></canvas>
+            </div>
+            <div id="categoryDeepStats"></div>
+        </div>
+
+        <!-- Weekly Pattern Analysis -->
+        <div class="insight-card animate-in">
+            <div class="insight-card-header">
+                <div class="insight-card-title">
+                    <i class="fas fa-calendar-week" style="color: var(--ai-blue);"></i>
+                    Weekly Pattern Analysis
+                </div>
+            </div>
+            <div class="chart-container" id="weeklyPatternChartContainer">
+                <canvas id="weeklyPatternChart"></canvas>
+            </div>
+            <div id="weeklyPatternStats"></div>
+        </div>
+
+    </div> <!-- /deep analytics grid -->
+
+    <!-- Section Divider -->
+    <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-text"><i class="fas fa-bullseye"></i> Goals & Tracking</div>
+        <div class="section-divider-line"></div>
+    </div>
+
+    <!-- Goals Section -->
+    <div class="insight-card animate-in" style="margin-bottom: 2rem;">
+        <div class="insight-card-header">
+            <div class="insight-card-title">
+                <i class="fas fa-flag-checkered" style="color: var(--success);"></i>
+                Monthly Goals Tracker
+            </div>
+            <button class="btn-icon" style="width: 32px; height: 32px;" onclick="addNewGoal()" title="Add Goal">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+        <div id="goalsContainer">
+            <!-- Goals injected by JS -->
+        </div>
+    </div>
+
+    <!-- Section Divider -->
+    <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-text"><i class="fas fa-table"></i> Detailed Breakdown</div>
+        <div class="section-divider-line"></div>
+    </div>
+
+    <!-- Top Expenses Table -->
+    <div class="insight-card animate-in" style="margin-bottom: 2rem;">
+        <div class="insight-card-header">
+            <div class="insight-card-title">
+                <i class="fas fa-list-ol" style="color: var(--danger);"></i>
+                Top 20 Expenses This Month
+            </div>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="data-table" id="topExpensesTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>% of Month</th>
+                    </tr>
+                </thead>
+                <tbody id="topExpensesBody">
+                    <!-- Rows injected by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div> <!-- /app-container -->
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ============================================================
+// CONFIGURATION
+// ============================================================
+const SESSION_KEY = 'expense_tracker_session';
+
+// ========== OPENROUTER API KEY (HARDCODED - Same as index.html) ==========
+const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_MODEL = 'openrouter/free';
+const AI_MAX_TOKENS = 4096;
+
+const CATEGORIES = [
+    { id: 'food', name: 'Food', icon: 'fa-utensils', color: '#f59e0b' },
+    { id: 'transport', name: 'Transport', icon: 'fa-bus', color: '#3b82f6' },
+    { id: 'shopping', name: 'Shopping', icon: 'fa-shopping-bag', color: '#ec4899' },
+    { id: 'entertainment', name: 'Fun', icon: 'fa-gamepad', color: '#8b5cf6' },
+    { id: 'bills', name: 'Bills', icon: 'fa-file-invoice-dollar', color: '#ef4444' },
+    { id: 'health', name: 'Health', icon: 'fa-heartbeat', color: '#10b981' },
+    { id: 'education', name: 'Education', icon: 'fa-graduation-cap', color: '#06b6d4' },
+    { id: 'other', name: 'Other', icon: 'fa-ellipsis-h', color: '#6b7280' }
+];
+
+// State
+let expenses = [];
+let budgets = {};
+let monthlyTarget = { dailyAvgTarget: 0, totalMonthlyTarget: 0, yearMonth: '' };
+let billsEnabled = false;
+let chartInstances = {};
+let isAIProcessing = false;
+let aiChatHistory = [];
+let currentAIAbortController = null;
+
+// ============================================================
+// SECURITY & SESSION
+// ============================================================
+function checkSession() {
+    try {
+        const data = sessionStorage.getItem(SESSION_KEY);
+        return data ? JSON.parse(data) : null;
+    } catch (e) { return null; }
+}
+
+function loadDataFromSession() {
+    const snapshot = sessionStorage.getItem('expense_data_snapshot');
+    if (!snapshot) return false;
+    try {
+        const data = JSON.parse(snapshot);
+        expenses = data.expenses || [];
+        budgets = data.budgets || {};
+        monthlyTarget = data.monthlyTarget || { dailyAvgTarget: 0, totalMonthlyTarget: 0, yearMonth: '' };
+        billsEnabled = data.billsEnabled || false;
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+    const session = checkSession();
+    
+    if (!session || !session.authenticated) {
+        document.getElementById('securityBlock').classList.add('active');
+        return;
+    }
+    
+    if (!loadDataFromSession()) {
+        document.getElementById('securityBlock').classList.add('active');
+        document.querySelector('.security-block h2').textContent = 'Data Not Available';
+        document.querySelector('.security-block p').textContent = 'Please visit the main dashboard first to load your data.';
+        return;
+    }
+    
+    // Init chat textarea auto-resize
+    const textarea = document.getElementById('aiFullChatInput');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+    }
+    
+    // Show loading then content
+    setTimeout(() => {
+        document.getElementById('insightsLoading').classList.add('hidden');
+        document.getElementById('appContainer').classList.add('active');
+        initializeInsights();
+    }, 800);
+});
+
+function initializeInsights() {
+    updateHeroStats();
+    generatePredictions();
+    renderProgressRings();
+    renderHeatmap();
+    renderMonthComparison();
+    renderCategoryDeepDive();
+    renderWeeklyPattern();
+    renderGoals();
+    renderTopExpenses();
+}
+
+// ============================================================
+// HERO STATS
+// ============================================================
+function updateHeroStats() {
+    const calcExpenses = getCalcExpenses();
+    document.getElementById('aiDataPoints').textContent = calcExpenses.length;
+    
+    // Calculate trend direction
+    const thisMonth = getLocalMonthStr();
+    const lastMonth = getLastMonthStr();
+    const thisTotal = calcExpenses.filter(e => e.date.startsWith(thisMonth)).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const lastTotal = calcExpenses.filter(e => e.date.startsWith(lastMonth)).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    
+    const trendEl = document.getElementById('aiTrend');
+    if (lastTotal > 0) {
+        const change = ((thisTotal - lastTotal) / lastTotal) * 100;
+        if (change > 5) {
+            trendEl.innerHTML = '<i class="fas fa-arrow-trend-up" style="color: var(--danger);"></i> Up';
+        } else if (change < -5) {
+            trendEl.innerHTML = '<i class="fas fa-arrow-trend-down" style="color: var(--success);"></i> Down';
+        } else {
+            trendEl.innerHTML = '<i class="fas fa-minus" style="color: var(--warning);"></i> Stable';
+        }
+    } else {
+        trendEl.innerHTML = '<i class="fas fa-minus" style="color: var(--text-secondary);"></i> N/A';
+    }
+    
+    // Health score based on monthly target adherence
+    let healthScore = 'B';
+    const today = new Date();
+    const thisMonthStr = getLocalMonthStr(today);
+    const targetSet = monthlyTarget.dailyAvgTarget > 0 && monthlyTarget.yearMonth === thisMonthStr;
+    
+    if (targetSet) {
+        const todayStr = getLocalDateStr(today);
+        const daysPassed = Math.max(1, today.getDate() - 1);
+        const monthSpent = calcExpenses.filter(e => e.date.startsWith(thisMonthStr) && e.date < todayStr).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        const actualDailyAvg = monthSpent / daysPassed;
+        const target = monthlyTarget.dailyAvgTarget;
+        
+        if (actualDailyAvg <= target * 0.7) healthScore = 'A+';
+        else if (actualDailyAvg <= target) healthScore = 'A';
+        else if (actualDailyAvg <= target * 1.1) healthScore = 'B';
+        else if (actualDailyAvg <= target * 1.3) healthScore = 'C';
+        else healthScore = 'D';
+    }
+    
+    document.getElementById('aiHealthScore').textContent = healthScore;
+    document.getElementById('aiHealthScore').style.color = 
+        healthScore.startsWith('A') ? 'var(--success)' : 
+        healthScore === 'B' ? 'var(--warning)' : 'var(--danger)';
+}
+
+// ============================================================
+// AI PREDICTIONS
+// ============================================================
+function generatePredictions() {
+    const calcExpenses = getCalcExpenses();
+    
+    // Simple moving average prediction
+    const last30Days = [];
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const ds = getLocalDateStr(d);
+        const dayTotal = calcExpenses.filter(e => e.date === ds).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        last30Days.push(dayTotal);
+    }
+    
+    const avgDaily = last30Days.reduce((a, b) => a + b, 0) / 30;
+    const tomorrowPred = Math.round(avgDaily);
+    const weekPred = Math.round(avgDaily * 7);
+    const monthPred = Math.round(avgDaily * 30);
+    
+    document.getElementById('predTomorrow').textContent = '৳' + tomorrowPred.toLocaleString();
+    document.getElementById('predWeek').textContent = '৳' + weekPred.toLocaleString();
+    document.getElementById('predMonth').textContent = '৳' + monthPred.toLocaleString();
+    
+    // AI Recommendation
+    const thisMonth = getLocalMonthStr();
+    const monthSpent = calcExpenses.filter(e => e.date.startsWith(thisMonth)).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const daysPassed = new Date().getDate();
+    const projected = (monthSpent / daysPassed) * 30;
+    
+    let recText = '';
+    const today = new Date();
+    const thisMonthStr = getLocalMonthStr(today);
+    const targetSet = monthlyTarget.dailyAvgTarget > 0 && monthlyTarget.yearMonth === thisMonthStr;
+    
+    if (targetSet) {
+        const target = monthlyTarget.dailyAvgTarget;
+        const daysInMonth = getDaysInMonth(today.getFullYear(), today.getMonth() + 1);
+        const monthlyBudget = target * daysInMonth;
+        
+        if (projected > monthlyBudget) {
+            const overBy = projected - monthlyBudget;
+            recText = `⚠️ At your current pace, you'll exceed your monthly budget by ৳${overBy.toFixed(0)}. Consider reducing daily spending to ৳${Math.max(0, target - (overBy/daysInMonth)).toFixed(0)} to stay on track.`;
+        } else {
+            const saved = monthlyBudget - projected;
+            recText = `✅ Great job! You're projected to save ৳${saved.toFixed(0)} this month if you maintain this pace. You have ৳${(target - (monthSpent/daysPassed)).toFixed(0)} flexibility per day.`;
+        }
+    } else {
+        recText = `💡 Set a monthly spending target on the main dashboard to get personalized budget recommendations from AI.`;
+    }
+    document.getElementById('predictionRecText').textContent = recText;
+}
+
+</script>
+
+<script>
+// ============================================================
+// PROGRESS RINGS
+// ============================================================
+function renderProgressRings() {
+    const container = document.getElementById('progressRingContainer');
+    const calcExpenses = getCalcExpenses();
+    const thisMonth = getLocalMonthStr();
+    const monthExpenses = calcExpenses.filter(e => e.date.startsWith(thisMonth));
+    
+    const rings = [];
+    const today = new Date();
+    const thisMonthStr = getLocalMonthStr(today);
+    const targetSet = monthlyTarget.dailyAvgTarget > 0 && monthlyTarget.yearMonth === thisMonthStr;
+    const target = monthlyTarget.dailyAvgTarget;
+    const daysInMonth = getDaysInMonth(today.getFullYear(), today.getMonth() + 1);
+    
+    // Monthly target ring
+    if (targetSet) {
+        const monthSpent = monthExpenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        const monthlyBudget = target * daysInMonth;
+        const pct = Math.min((monthSpent / monthlyBudget) * 100, 100);
+        const color = pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981';
+        rings.push({ label: 'Month', value: pct, color, text: `${pct.toFixed(0)}%` });
+    }
+    
+    // Today's spend ring
+    if (targetSet) {
+        const todayStr = getLocalDateStr();
+        const todaySpent = calcExpenses.filter(e => e.date === todayStr).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        const pct = Math.min((todaySpent / target) * 100, 100);
+        const color = pct > 100 ? '#ef4444' : pct > 85 ? '#f59e0b' : '#10b981';
+        rings.push({ label: 'Today', value: Math.min(pct, 100), color, text: `৳${todaySpent.toFixed(0)}` });
+    }
+    
+    // Top category ring
+    const catTotals = {};
+    monthExpenses.forEach(e => catTotals[e.category] = (catTotals[e.category] || 0) + (parseFloat(e.amount) || 0));
+    if (Object.keys(catTotals).length > 0) {
+        const topCat = Object.keys(catTotals).reduce((a, b) => catTotals[a] > catTotals[b] ? a : b);
+        const topCatObj = CATEGORIES.find(c => c.id === topCat);
+        const catBudget = budgets[topCat] || 0;
+        if (catBudget > 0) {
+            const pct = Math.min((catTotals[topCat] / catBudget) * 100, 100);
+            const color = pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981';
+            rings.push({ label: topCatObj.name, value: pct, color, text: `${pct.toFixed(0)}%` });
+        }
+    }
+    
+    // Savings ring
+    if (targetSet) {
+        const daysPassed = today.getDate();
+        const expectedSpent = target * daysPassed;
+        const actualSpent = monthExpenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        const savings = Math.max(0, expectedSpent - actualSpent);
+        const savingsPct = expectedSpent > 0 ? Math.min((savings / expectedSpent) * 100, 100) : 0;
+        rings.push({ label: 'Savings', value: savingsPct, color: '#8b5cf6', text: `৳${savings.toFixed(0)}` });
+    }
+    
+    container.innerHTML = rings.map((ring, i) => {
+        const radius = 50;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (ring.value / 100) * circumference;
+        return `
+            <div class="progress-ring-item">
+                <div class="progress-ring">
+                    <svg width="120" height="120">
+                        <circle class="progress-ring-bg" cx="60" cy="60" r="${radius}"></circle>
+                        <circle class="progress-ring-fill" cx="60" cy="60" r="${radius}" 
+                            stroke="${ring.color}" 
+                            stroke-dasharray="${circumference}" 
+                            stroke-dashoffset="${offset}"
+                            style="transition: stroke-dashoffset 1s ease ${i * 0.2}s;"></circle>
+                    </svg>
+                    <div class="progress-ring-text" style="color: ${ring.color};">${ring.text}</div>
+                </div>
+                <div class="progress-ring-label">${ring.label}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ============================================================
+// HEATMAP
+// ============================================================
+function renderHeatmap() {
+    const container = document.getElementById('heatmapGrid');
+    const calcExpenses = getCalcExpenses();
+    
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(getLocalDateStr(d));
+    }
+    
+    const maxAmount = Math.max(...days.map(d => 
+        calcExpenses.filter(e => e.date === d).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0)
+    ), 1);
+    
+    container.innerHTML = days.map(d => {
+        const amount = calcExpenses.filter(e => e.date === d).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        const intensity = amount / maxAmount;
+        let bg;
+        if (intensity === 0) bg = '#e2e8f0';
+        else if (intensity < 0.25) bg = '#a78bfa';
+        else if (intensity < 0.5) bg = '#8b5cf6';
+        else if (intensity < 0.75) bg = '#7c3aed';
+        else bg = '#ef4444';
+        
+        const dayNum = new Date(d).getDate();
+        return `<div class="heatmap-cell" style="background: ${bg};" title="${d}: ৳${amount.toFixed(2)}">${dayNum}</div>`;
+    }).join('');
+}
+
+// ============================================================
+// MONTH COMPARISON
+// ============================================================
+function renderMonthComparison() {
+    const container = document.getElementById('comparisonContainer');
+    const calcExpenses = getCalcExpenses();
+    
+    const thisMonth = getLocalMonthStr();
+    const lastMonth = getLastMonthStr();
+    
+    const thisMonthExp = calcExpenses.filter(e => e.date.startsWith(thisMonth));
+    const lastMonthExp = calcExpenses.filter(e => e.date.startsWith(lastMonth));
+    
+    const comparisons = [
+        { label: 'Total Spending', this: thisMonthExp.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0), last: lastMonthExp.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) },
+        { label: 'Transactions', this: thisMonthExp.length, last: lastMonthExp.length, isCount: true },
+        { label: 'Daily Average', this: thisMonthExp.length > 0 ? thisMonthExp.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) / new Date().getDate() : 0, last: lastMonthExp.length > 0 ? lastMonthExp.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) / 30 : 0 },
+        { label: 'Food Spending', this: thisMonthExp.filter(e => e.category === 'food').reduce((s, e) => s + (parseFloat(e.amount) || 0), 0), last: lastMonthExp.filter(e => e.category === 'food').reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) }
+    ];
+    
+    container.innerHTML = comparisons.map(c => {
+        const max = Math.max(c.this, c.last, 1);
+        const thisPct = (c.this / max) * 100;
+        const lastPct = (c.last / max) * 100;
+        const thisWidth = Math.max(thisPct, 5);
+        const lastWidth = Math.max(lastPct, 5);
+        const prefix = c.isCount ? '' : '৳';
+        const thisVal = c.isCount ? c.this : c.this.toFixed(0);
+        const lastVal = c.isCount ? c.last : c.last.toFixed(0);
+        
+        return `
+            <div class="comparison-item">
+                <div class="comparison-header">
+                    <span>${c.label}</span>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">This vs Last</span>
+                </div>
+                <div class="comparison-bar-container">
+                    <div class="comparison-bar-this" style="width: ${thisWidth}%; background: linear-gradient(90deg, #6366f1, #8b5cf6);">
+                        ${prefix}${thisVal}
+                    </div>
+                    <div class="comparison-bar-last" style="width: ${lastWidth}%; background: linear-gradient(90deg, #94a3b8, #64748b);">
+                        ${prefix}${lastVal}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ============================================================
+// CATEGORY DEEP DIVE CHART
+// ============================================================
+function renderCategoryDeepDive() {
+    const ctx = document.getElementById('categoryDeepChart').getContext('2d');
+    if (chartInstances.categoryDeep) chartInstances.categoryDeep.destroy();
+    
+    const calcExpenses = getCalcExpenses();
+    const thisMonth = getLocalMonthStr();
+    const monthExpenses = calcExpenses.filter(e => e.date.startsWith(thisMonth));
+    
+    const catData = {};
+    CATEGORIES.forEach(c => catData[c.id] = 0);
+    monthExpenses.forEach(e => catData[e.category] = (catData[e.category] || 0) + (parseFloat(e.amount) || 0));
+    
+    const labels = CATEGORIES.map(c => c.name);
+    const data = CATEGORIES.map(c => catData[c.id]);
+    const colors = CATEGORIES.map(c => c.color);
+    
+    chartInstances.categoryDeep = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'This Month',
+                data,
+                backgroundColor: colors,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+    
+    // Stats
+    const total = data.reduce((a, b) => a + b, 0);
+    const statsHtml = CATEGORIES.map((cat, i) => {
+        const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
+        const budget = budgets[cat.id] || 0;
+        const status = budget > 0 && data[i] > budget ? 'over' : budget > 0 && data[i] > budget * 0.8 ? 'warning' : 'good';
+        const statusColor = status === 'over' ? 'var(--danger)' : status === 'warning' ? 'var(--warning)' : 'var(--success)';
+        return `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border);">
+                <span style="display:flex;align-items:center;gap:0.5rem;">
+                    <i class="fas ${cat.icon}" style="color:${cat.color};"></i>
+                    ${cat.name}
+                </span>
+                <span style="font-weight:700;color:${statusColor};">
+                    ৳${data[i].toFixed(0)} ${budget > 0 ? `/ ৳${budget}` : ''} (${pct}%)
+                </span>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('categoryDeepStats').innerHTML = statsHtml;
+}
+
+// ============================================================
+// WEEKLY PATTERN CHART
+// ============================================================
+function renderWeeklyPattern() {
+    const ctx = document.getElementById('weeklyPatternChart').getContext('2d');
+    if (chartInstances.weeklyPattern) chartInstances.weeklyPattern.destroy();
+    
+    const calcExpenses = getCalcExpenses();
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+    const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+    
+    calcExpenses.forEach(e => {
+        const day = new Date(e.date).getDay();
+        dayTotals[day] += parseFloat(e.amount) || 0;
+        dayCounts[day]++;
+    });
+    
+    const dayAvgs = dayTotals.map((total, i) => dayCounts[i] > 0 ? total / dayCounts[i] : 0);
+    
+    chartInstances.weeklyPattern = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: dayNames,
+            datasets: [{
+                label: 'Avg Spending',
+                data: dayAvgs,
+                backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                borderColor: '#8b5cf6',
+                pointBackgroundColor: '#8b5cf6',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#8b5cf6'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    pointLabels: { font: { size: 12, weight: 'bold' } }
+                }
+            }
+        }
+    });
+    
+    // Find highest day
+    const maxDay = dayAvgs.indexOf(Math.max(...dayAvgs));
+    const minDay = dayAvgs.indexOf(Math.min(...dayAvgs.filter(v => v > 0)) || 0);
+    
+    document.getElementById('weeklyPatternStats').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
+            <div style="background:var(--bg);padding:1rem;border-radius:12px;text-align:center;">
+                <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.25rem;">Highest Spend Day</div>
+                <div style="font-size:1.25rem;font-weight:800;color:var(--danger);">${dayNames[maxDay]}</div>
+                <div style="font-size:0.85rem;color:var(--text-secondary);">৳${dayAvgs[maxDay].toFixed(0)} avg</div>
+            </div>
+            <div style="background:var(--bg);padding:1rem;border-radius:12px;text-align:center;">
+                <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.25rem;">Lowest Spend Day</div>
+                <div style="font-size:1.25rem;font-weight:800;color:var(--success);">${dayNames[minDay]}</div>
+                <div style="font-size:0.85rem;color:var(--text-secondary);">৳${dayAvgs[minDay].toFixed(0)} avg</div>
+            </div>
+        </div>
+    `;
+}
+
+// ============================================================
+// GOALS TRACKER
+// ============================================================
+function renderGoals() {
+    const container = document.getElementById('goalsContainer');
+    const calcExpenses = getCalcExpenses();
+    const today = new Date();
+    const thisMonthStr = getLocalMonthStr(today);
+    const monthSpent = calcExpenses.filter(e => e.date.startsWith(thisMonthStr)).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const targetSet = monthlyTarget.dailyAvgTarget > 0 && monthlyTarget.yearMonth === thisMonthStr;
+    const target = monthlyTarget.dailyAvgTarget;
+    const daysInMonth = getDaysInMonth(today.getFullYear(), today.getMonth() + 1);
+    
+    // Auto-generate goals based on data
+    const goals = [];
+    
+    // Monthly target goal
+    if (targetSet) {
+        const monthlyBudget = target * daysInMonth;
+        const status = monthSpent > monthlyBudget * 1.1 ? 'over' : monthSpent > monthlyBudget ? 'at-risk' : 'on-track';
+        goals.push({
+            title: 'Monthly Budget Goal',
+            current: monthSpent,
+            target: monthlyBudget,
+            status,
+            description: `৳${monthSpent.toFixed(0)} of ৳${monthlyBudget.toFixed(0)} spent`
+        });
+    }
+    
+    // Category goals
+    CATEGORIES.forEach(cat => {
+        const budget = budgets[cat.id] || 0;
+        if (budget > 0) {
+            const spent = calcExpenses.filter(e => e.date.startsWith(thisMonthStr) && e.category === cat.id).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+            const status = spent > budget ? 'over' : spent > budget * 0.85 ? 'at-risk' : 'on-track';
+            goals.push({
+                title: `${cat.name} Budget`,
+                current: spent,
+                target: budget,
+                status,
+                description: `৳${spent.toFixed(0)} of ৳${budget.toFixed(0)}`
+            });
+        }
+    });
+    
+    // Savings goal
+    if (targetSet) {
+        const daysPassed = today.getDate();
+        const expectedSpent = target * daysPassed;
+        const potentialSavings = expectedSpent - monthSpent;
+        goals.push({
+            title: 'Monthly Savings Target',
+            current: Math.max(0, potentialSavings),
+            target: target * 5,
+            status: potentialSavings > target * 3 ? 'on-track' : potentialSavings > 0 ? 'at-risk' : 'over',
+            description: `Potential savings: ৳${Math.max(0, potentialSavings).toFixed(0)}`
+        });
+    }
+    
+    if (goals.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding:2rem;"><i class="fas fa-bullseye" style="font-size:3rem;"></i><p>Set budgets on the main dashboard to see goals here</p></div>';
+        return;
+    }
+    
+    container.innerHTML = goals.map(g => {
+        const pct = Math.min((g.current / g.target) * 100, 100);
+        const statusClass = g.status;
+        const statusText = g.status === 'on-track' ? 'On Track' : g.status === 'at-risk' ? 'At Risk' : 'Over Budget';
+        const color = g.status === 'on-track' ? '#10b981' : g.status === 'at-risk' ? '#f59e0b' : '#ef4444';
+        
+        return `
+            <div class="goal-item">
+                <div class="goal-header">
+                    <div class="goal-title">${g.title}</div>
+                    <div class="goal-status ${statusClass}">${statusText}</div>
+                </div>
+                <div class="goal-progress-bar">
+                    <div class="goal-progress-fill" style="width: ${pct}%; background: ${color};"></div>
+                </div>
+                <div class="goal-footer">
+                    <span>${g.description}</span>
+                    <span style="color: ${color}; font-weight: 700;">${pct.toFixed(0)}%</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function addNewGoal() {
+    showToast('Custom goals coming soon! Set budgets on the main page for now.', 'warning');
+}
+
+// ============================================================
+// TOP EXPENSES TABLE
+// ============================================================
+function renderTopExpenses() {
+    const tbody = document.getElementById('topExpensesBody');
+    const calcExpenses = getCalcExpenses();
+    const thisMonth = getLocalMonthStr();
+    const monthExpenses = calcExpenses.filter(e => e.date.startsWith(thisMonth));
+    const monthTotal = monthExpenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    
+    const sorted = [...monthExpenses].sort((a, b) => (parseFloat(b.amount) || 0) - (parseFloat(a.amount) || 0)).slice(0, 20);
+    
+    if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-secondary);">No expenses this month</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = sorted.map((e, i) => {
+        const cat = CATEGORIES.find(c => c.id === e.category) || CATEGORIES[7];
+        const pct = monthTotal > 0 ? ((parseFloat(e.amount) || 0) / monthTotal * 100).toFixed(1) : 0;
+        return `
+            <tr>
+                <td style="font-weight:700;color:var(--text-secondary);">${i + 1}</td>
+                <td>${formatDate(e.date)}</td>
+                <td>${escapeHtml(e.title)}</td>
+                <td><span style="color:${cat.color};"><i class="fas ${cat.icon}"></i> ${cat.name}</span></td>
+                <td style="font-weight:700;">৳${(parseFloat(e.amount) || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+                <td>${pct}%</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ============================================================
+// ========== FIXED: FULL AI CHAT (OpenRouter with Streaming) ==========
+// ============================================================
+
+function handleFullChatInput(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendFullAIChat();
+    }
+}
+
+function sendQuickQuestion(question) {
+    document.getElementById('aiFullChatInput').value = question;
+    sendFullAIChat();
+}
+
+async function sendFullAIChat() {
+    const input = document.getElementById('aiFullChatInput');
+    const sendBtn = document.getElementById('aiFullChatSend');
+    const message = input.value.trim();
+    
+    if (!message || isAIProcessing) return;
+    
+    // Add user message
+    addFullChatMessage(message, 'user');
+    aiChatHistory.push({ role: 'user', content: message });
+    input.value = '';
+    input.style.height = 'auto';
+    
+    isAIProcessing = true;
+    sendBtn.disabled = true;
+    
+    const aiMsgId = 'ai-msg-' + Date.now();
+    const typingId = addFullChatTyping(aiMsgId);
+    
+    currentAIAbortController = new AbortController();
+    
+    try {
+        const response = await callOpenRouterAPI(message, true);
+        
+        if (response.body) {
+            await handleStreamingResponse(response.body, aiMsgId, typingId);
+        } else {
+            removeFullChatMessage(typingId);
+            const text = typeof response === 'string' ? response : 'Error: Invalid response';
+            addFullChatMessage(text, 'ai', aiMsgId);
+            aiChatHistory.push({ role: 'assistant', content: text });
+            trimChatHistory();
+        }
+        
+    } catch (err) {
+        console.error('AI Chat Error:', err);
+        removeFullChatMessage(typingId);
+        
+        let errorMsg = 'Sorry, I had trouble processing that. ';
+        
+        if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+            errorMsg += 'API authentication failed. Please check your OpenRouter API key.';
+        } else if (err.message.includes('429') || err.message.includes('Rate limit')) {
+            errorMsg += 'Rate limit reached. Free tier allows 50 requests/day. Please try again in a moment.';
+        } else if (err.message.includes('Network') || err.message.includes('fetch')) {
+            errorMsg += 'Network error. Please check your internet connection.';
+        } else {
+            errorMsg += 'The model might be busy. Please try again in a moment.';
+        }
+        
+        addFullChatMessage(errorMsg, 'ai', aiMsgId, true);
+    } finally {
+        isAIProcessing = false;
+        sendBtn.disabled = false;
+        currentAIAbortController = null;
+    }
+}
+
+async function callOpenRouterAPI(userMessage, stream = true) {
+    const context = buildAIContext();
+    
+    const messages = [
+        {
+            role: 'system',
+            content: `You are an expert financial assistant for an expense tracker app. The user is from Bangladesh (currency: ৳/BDT). ${context}
+
+INSTRUCTIONS:
+- Answer questions about spending, budgets, savings tips, and financial advice
+- If asked about product prices, check the recent purchases list
+- If asked "when did I last buy X", search the recent purchases
+- Give practical Bangladesh-specific advice when relevant
+- Keep responses concise but complete (2-5 sentences)
+- Be encouraging but honest about spending habits
+- Use markdown formatting for better readability
+- If the user asks something unrelated to finances, politely redirect to money topics`
+        },
+        ...aiChatHistory.slice(-6).map(h => ({
+            role: h.role,
+            content: h.content
+        })),
+        {
+            role: 'user',
+            content: userMessage
+        }
+    ];
+    
+    const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': window.location.href,
+            'X-Title': 'Expense Tracker AI Insights'
+        },
+        body: JSON.stringify({
+            model: OPENROUTER_MODEL,
+            max_tokens: AI_MAX_TOKENS,
+            messages: messages,
+            stream: stream
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+    }
+    
+    return response;
+}
+
+function buildAIContext() {
+    const calcExpenses = getCalcExpenses();
+    const today = getLocalDateStr();
+    const thisMonth = getLocalMonthStr();
+    
+    const todaySpent = calcExpenses.filter(e => e.date === today).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const monthSpent = calcExpenses.filter(e => e.date.startsWith(thisMonth)).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const totalSpent = calcExpenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    
+    const recentPurchases = calcExpenses.slice(0, 30).map(e => {
+        const cat = CATEGORIES.find(c => c.id === e.category)?.name || e.category;
+        return `- ${e.title} (${cat}): ৳${e.amount} on ${e.date}`;
+    }).join('\n');
+    
+    const budgetInfo = Object.entries(budgets).filter(([cat]) => !cat.startsWith('__')).map(([cat, amount]) => {
+        const spent = calcExpenses.filter(e => e.date.startsWith(thisMonth) && e.category === cat).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        const catName = CATEGORIES.find(c => c.id === cat)?.name || cat;
+        return `- ${catName}: ৳${spent.toFixed(2)} / ৳${amount}`;
+    }).join('\n') || 'No category budgets set';
+    
+    const targetInfo = monthlyTarget.dailyAvgTarget > 0 
+        ? `Monthly Target: ৳${monthlyTarget.dailyAvgTarget}/day (৳${(monthlyTarget.dailyAvgTarget * 30).toFixed(0)}/month)`
+        : 'No monthly target set';
+    
+    return `CURRENT FINANCIAL SNAPSHOT:
+- Today spent: ৳${todaySpent.toFixed(2)}
+- This month spent: ৳${monthSpent.toFixed(2)}
+- Total all-time spent: ৳${totalSpent.toFixed(2)}
+- ${targetInfo}
+- Total transactions: ${calcExpenses.length}
+
+RECENT PURCHASES (last 30):
+${recentPurchases}
+
+CATEGORY BUDGETS:
+${budgetInfo}`;
+}
+
+async function handleStreamingResponse(readableStream, aiMsgId, typingId) {
+    const reader = readableStream.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let buffer = '';
+    
+    removeFullChatMessage(typingId);
+    
+    const container = document.getElementById('aiFullChatMessages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'ai-full-chat-message ai';
+    msgDiv.id = aiMsgId;
+    msgDiv.innerHTML = `
+        <div class="ai-message-header"><i class="fas fa-robot"></i> AI Assistant</div>
+        <div class="ai-message-body"></div>
+        <div class="ai-message-actions">
+            <button class="ai-message-action-btn" onclick="copyAIMessage('${aiMsgId}')">
+                <i class="fas fa-copy"></i> Copy
+            </button>
+        </div>
+    `;
+    container.appendChild(msgDiv);
+    
+    const bodyDiv = msgDiv.querySelector('.ai-message-body');
+    
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed === 'data: [DONE]') continue;
+                
+                if (trimmed.startsWith('data: ')) {
+                    try {
+                        const json = JSON.parse(trimmed.slice(6));
+                        if (json.choices && json.choices[0]) {
+                            const delta = json.choices[0].delta;
+                            if (delta && delta.content) {
+                                fullText += delta.content;
+                                bodyDiv.innerHTML = parseMarkdown(fullText) + '<span class="streaming-cursor"></span>';
+                                scrollFullChatToBottom();
+                            }
+                        }
+                    } catch (e) {
+                        // Ignore parse errors for incomplete chunks
+                    }
+                }
+            }
+        }
+        
+        bodyDiv.innerHTML = parseMarkdown(fullText);
+        scrollFullChatToBottom();
+        
+        aiChatHistory.push({ role: 'assistant', content: fullText });
+        trimChatHistory();
+        
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            bodyDiv.innerHTML = parseMarkdown(fullText || '[Cancelled]');
+        } else {
+            throw err;
+        }
+    }
+}
+
+function addFullChatMessage(text, sender, id = null, isError = false) {
+    const container = document.getElementById('aiFullChatMessages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `ai-full-chat-message ${sender}`;
+    if (id) msgDiv.id = id;
+    
+    if (sender === 'ai') {
+        const parsedText = isError ? escapeHtml(text) : parseMarkdown(text);
+        msgDiv.innerHTML = `
+            <div class="ai-message-header">
+                <i class="fas ${isError ? 'fa-exclamation-triangle' : 'fa-robot'}"></i> 
+                ${isError ? 'Error' : 'AI Assistant'}
+            </div>
+            <div class="ai-message-body">${parsedText}</div>
+            <div class="ai-message-actions">
+                <button class="ai-message-action-btn" onclick="copyAIMessage('${id || msgDiv.id}')">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+        `;
+    } else {
+        msgDiv.innerHTML = `<div>${escapeHtml(text)}</div>`;
+    }
+    
+    container.appendChild(msgDiv);
+    scrollFullChatToBottom();
+    return msgDiv;
+}
+
+function addFullChatTyping(id = null) {
+    const container = document.getElementById('aiFullChatMessages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'ai-full-chat-message ai';
+    const typingId = 'ai-typing-' + Date.now();
+    msgDiv.id = typingId;
+    msgDiv.innerHTML = `
+        <div class="ai-message-header"><i class="fas fa-robot"></i> AI Assistant</div>
+        <div class="ai-chat-typing">
+            <div class="ai-chat-typing-dot"></div>
+            <div class="ai-chat-typing-dot"></div>
+            <div class="ai-chat-typing-dot"></div>
+        </div>
+    `;
+    container.appendChild(msgDiv);
+    scrollFullChatToBottom();
+    return typingId;
+}
+
+function removeFullChatMessage(id) {
+    const msg = document.getElementById(id);
+    if (msg) msg.remove();
+}
+
+function scrollFullChatToBottom() {
+    const container = document.getElementById('aiFullChatMessages');
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+function trimChatHistory() {
+    if (aiChatHistory.length > 20) {
+        aiChatHistory = aiChatHistory.slice(-20);
+    }
+}
+
+function clearFullAIChat() {
+    if (!confirm('Clear all chat messages?')) return;
+    aiChatHistory = [];
+    const container = document.getElementById('aiFullChatMessages');
+    container.innerHTML = `
+        <div class="ai-full-chat-message ai">
+            <div class="ai-message-header"><i class="fas fa-robot"></i> AI Assistant</div>
+            <div class="ai-message-body">Chat cleared. How can I help you today?</div>
+        </div>
+    `;
+    showToast('Chat cleared', 'success');
+}
+
+function copyAIMessage(id) {
+    const msg = document.getElementById(id);
+    if (!msg) return;
+    
+    const body = msg.querySelector('.ai-message-body');
+    if (!body) return;
+    
+    const temp = document.createElement('div');
+    temp.innerHTML = body.innerHTML;
+    const text = temp.textContent || temp.innerText || '';
+    
+    navigator.clipboard.writeText(text.trim()).then(() => {
+        showToast('Copied to clipboard!', 'success');
+    }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text.trim();
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('Copied to clipboard!', 'success');
+    });
+}
+
+// ============================================================
+// MARKDOWN PARSER (Same as index.html)
+// ============================================================
+function parseMarkdown(text) {
+    if (!text) return '';
+    let html = escapeHtml(text);
+    
+    html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    html = html.replace(/_(.*?)_/g, '<em>$1</em>');
+    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    html = html.replace(/^\s*[-*+]\s+(.*$)/gim, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    html = html.replace(/<\/ul>\s*<ul>/g, '');
+    html = html.replace(/^\s*\d+\.\s+(.*$)/gim, '<li>$1</li>');
+    html = html.replace(/^\s*>\s+(.*$)/gim, '<blockquote>$1</blockquote>');
+    html = html.replace(/\n/g, '<br>');
+    html = html.replace(/<\/li><br>/g, '</li>');
+    html = html.replace(/<ul><br>/g, '<ul>');
+    html = html.replace(/<\/ul><br>/g, '</ul>');
+    
+    return html;
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function getCalcExpenses() {
+    if (billsEnabled) return expenses;
+    return expenses.filter(e => e.category !== 'bills');
+}
+
+function getLocalDateStr(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getLocalMonthStr(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getLastMonthStr() {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return getLocalMonthStr(d);
+}
+
+function getDaysInMonth(year, month) {
+    return new Date(year, month, 0).getDate();
+}
+
+function formatDate(dateStr) {
+    const [y, m, day] = dateStr.split('-').map(Number);
+    const d = new Date(y, m - 1, day);
+    const now = new Date();
+    const diff = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('dark');
+    const icon = document.getElementById('themeIcon');
+    icon.className = document.body.classList.contains('dark') ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function showToast(message, type) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-exclamation-circle'}"></i>
+        <span>${message}</span>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function regenerateInsights() {
+    document.getElementById('insightsLoading').classList.remove('hidden');
+    document.getElementById('appContainer').classList.remove('active');
+    
+    setTimeout(() => {
+        initializeInsights();
+        document.getElementById('insightsLoading').classList.add('hidden');
+        document.getElementById('appContainer').classList.add('active');
+        showToast('Insights refreshed!', 'success');
+    }, 1000);
+}
+</script>
+</body>
+</html>

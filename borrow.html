@@ -1,0 +1,1273 @@
+<!-- ========== BORROW / LEND TRACKER - PART 1 OF 2 ========== -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Borrow & Lend Tracker - TK</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #06b6d4;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        .dark {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: all 0.3s;
+        }
+
+        /* PIN Screen */
+        .pin-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s;
+        }
+
+        .pin-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .pin-box {
+            background: rgba(255,255,255,0.95);
+            padding: 3rem;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            animation: slideUp 0.5s ease-out;
+            position: relative;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .pin-input-wrapper {
+            position: relative;
+            width: 100%;
+            margin: 1.5rem 0;
+            cursor: text;
+        }
+
+        .pin-real-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: text;
+            font-size: 16px;
+            z-index: 10;
+            border: none;
+            background: transparent;
+            color: transparent;
+            caret-color: transparent;
+        }
+
+        .pin-dots {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .pin-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px solid #667eea;
+            transition: all 0.2s;
+            background: transparent;
+        }
+
+        .pin-dot.filled {
+            background: #667eea;
+            transform: scale(1.15);
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.5);
+        }
+
+        .pin-error {
+            color: var(--danger);
+            font-size: 0.9rem;
+            margin-top: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            min-height: 1.5rem;
+            font-weight: 600;
+        }
+
+        .pin-error.show {
+            opacity: 1;
+        }
+
+        .pin-loading {
+            color: #667eea;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+            font-weight: 600;
+        }
+
+        .pin-loading.show {
+            display: block;
+        }
+
+        /* Layout */
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: none;
+        }
+
+        .app-container.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .sync-status {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            background: var(--card);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .sync-status.online { color: var(--success); }
+        .sync-status.syncing { color: var(--warning); }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 1.1rem;
+        }
+
+        .btn-icon:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), #8b5cf6);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .stat-card.danger::before { background: linear-gradient(90deg, var(--danger), #f87171); }
+        .stat-card.success::before { background: linear-gradient(90deg, var(--success), #34d399); }
+        .stat-card.warning::before { background: linear-gradient(90deg, var(--warning), #fbbf24); }
+        .stat-card.info::before { background: linear-gradient(90deg, var(--info), #22d3ee); }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-sub {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.23);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 0.5rem 1.25rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+        }
+
+        .tab:hover:not(.active) {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* Transaction / Entry List */
+        .entry-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .entry-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 16px;
+            margin-bottom: 0.75rem;
+            background: var(--bg);
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .entry-item:hover {
+            border-color: var(--border);
+            transform: translateX(4px);
+        }
+
+        .entry-item.returned {
+            opacity: 0.6;
+        }
+
+        .entry-item.returned .entry-title {
+            text-decoration: line-through;
+        }
+
+        .entry-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .entry-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .entry-title {
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .entry-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .entry-amount {
+            font-weight: 800;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .entry-amount.given {
+            color: var(--danger);
+        }
+
+        .entry-amount.taken {
+            color: var(--warning);
+        }
+
+        .entry-actions {
+            display: flex;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .entry-item:hover .entry-actions {
+            opacity: 1;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .badge-returned {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .badge-overdue {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal {
+            background: var(--card);
+            border-radius: 24px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .toast {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            border-radius: 14px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideInRight 0.3s ease-out;
+            min-width: 300px;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        /* Toggle Switch */
+        .toggle-group {
+            display: flex;
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 0.25rem;
+            gap: 0.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .toggle-btn.active {
+            background: var(--card);
+            color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .entry-actions { opacity: 1; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .pin-box { padding: 2rem; }
+            .sync-status { display: none; }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="dark">
+
+<!-- PIN Screen -->
+<div class="pin-screen" id="pinScreen">
+    <div class="pin-box" id="pinBox">
+        <i class="fas fa-hand-holding-usd" style="font-size: 3rem; color: #667eea; margin-bottom: 1rem;"></i>
+        <h2 style="margin-bottom: 0.5rem;">Borrow & Lend</h2>
+        <p style="color: #64748b; margin-bottom: 0.5rem;">Enter your 5-digit PIN to continue</p>
+        
+        <div class="pin-input-wrapper" id="pinInputWrapper">
+            <input 
+                type="tel" 
+                class="pin-real-input" 
+                id="pinRealInput"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="5"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+            >
+            <div class="pin-dots" id="pinDots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+        </div>
+        
+        <p class="pin-error" id="pinError">Incorrect PIN. Please try again.</p>
+        <p class="pin-loading" id="pinLoading"><span class="spinner" style="border-color: #667eea33; border-top-color: #667eea; vertical-align: middle; margin-right: 8px;"></span>Loading your data...</p>
+    </div>
+</div>
+
+<!-- Main App -->
+<div class="app-container" id="appContainer">
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">
+            <i class="fas fa-hand-holding-usd"></i>
+            Borrow & Lend
+        </div>
+        <div class="header-actions">
+            <div class="sync-status online" id="syncStatus">
+                <i class="fas fa-cloud"></i> <span>Synced</span>
+            </div>
+            <button class="btn-icon" onclick="window.location.href='index.html'" title="Back to Expenses">
+                <i class="fas fa-wallet"></i>
+            </button>
+            <button class="btn-icon" onclick="toggleTheme()" title="Toggle Theme">
+                <i class="fas fa-sun" id="themeIcon"></i>
+            </button>
+            <button class="btn-icon" onclick="lockApp()" title="Lock / Logout">
+                <i class="fas fa-lock"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card danger">
+            <div class="stat-label">Total Given</div>
+            <div class="stat-value" id="totalGiven">৳0.00</div>
+            <div class="stat-sub">Money you lent</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-label">Total Taken</div>
+            <div class="stat-value" id="totalTaken">৳0.00</div>
+            <div class="stat-sub">Money you borrowed</div>
+        </div>
+        <div class="stat-card info">
+            <div class="stat-label">Net Balance</div>
+            <div class="stat-value" id="netBalance">৳0.00</div>
+            <div class="stat-sub">+ means they owe you</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-label">Pending</div>
+            <div class="stat-value" id="pendingCount">0</div>
+            <div class="stat-sub">Unsettled entries</div>
+        </div>
+    </div>
+
+    <!-- Add Entry Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-plus-circle" style="color: var(--primary);"></i>
+                Add Entry
+            </div>
+        </div>
+        
+        <div class="toggle-group">
+            <button class="toggle-btn active" id="btnGiven" onclick="setEntryType('given')">
+                <i class="fas fa-arrow-up"></i> I Gave Money
+            </button>
+            <button class="toggle-btn" id="btnTaken" onclick="setEntryType('taken')">
+                <i class="fas fa-arrow-down"></i> I Took Money
+            </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label class="form-label">Person Name</label>
+                <input type="text" class="form-input" id="entryName" placeholder="e.g. Rahim, Karim">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Amount (৳)</label>
+                <input type="number" class="form-input" id="entryAmount" placeholder="0.00" step="0.01">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date</label>
+                <input type="date" class="form-input" id="entryDate">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Reminder Date</label>
+                <input type="date" class="form-input" id="entryReminder">
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label class="form-label">Notes (Optional)</label>
+                <input type="text" class="form-input" id="entryNotes" placeholder="Any details...">
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" style="width: 100%;" onclick="saveEntry()">
+            <i class="fas fa-save"></i> Save Entry
+        </button>
+    </div>
+
+    <!-- Entries List -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-list" style="color: var(--primary);"></i>
+                Records
+            </div>
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('all')">All</button>
+                <button class="tab" onclick="switchTab('given')">Given</button>
+                <button class="tab" onclick="switchTab('taken')">Taken</button>
+                <button class="tab" onclick="switchTab('pending')">Pending</button>
+            </div>
+        </div>
+        <div class="entry-list" id="entryList">
+            <div class="empty-state">
+                <i class="fas fa-handshake"></i>
+                <h3>No records yet</h3>
+                <p>Add your first borrow or lend entry</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ============================================================
+// CONFIGURATION - USE SAME SUPABASE AS index.html
+// ============================================================
+const SUPABASE_URL = 'https://hjblscnpnnsvkjpbydtl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhqYmxzY25wbm5zdmtqcGJ5ZHRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3ODQ0NjYsImV4cCI6MjA5NzM2MDQ2Nn0.f1rfynEbzFBahYRkAyMpSGOWpNQAS0XRcIf7hMlK92U';
+const CORRECT_PIN = '18566';
+const SESSION_KEY = 'expense_tracker_session';
+
+let supabaseClient = null;
+let entries = [];
+let currentPin = null;
+let entryType = 'given';
+let currentTab = 'all';
+
+document.addEventListener('DOMContentLoaded', () => {
+    initSupabase();
+    document.getElementById('entryDate').valueAsDate = new Date();
+    
+    const session = checkSession();
+    if (session && session.authenticated) {
+        currentPin = session.pin;
+        showAppLoading();
+        loadData().then(() => {
+            document.getElementById('pinScreen').classList.add('hidden');
+            document.getElementById('appContainer').classList.add('active');
+            updateUI();
+        }).catch(err => {
+            console.error(err);
+            clearSession();
+            showPinScreen();
+        });
+    } else {
+        showPinScreen();
+    }
+});
+
+function initSupabase() {
+    if (!SUPABASE_URL.includes('supabase.co') || SUPABASE_ANON_KEY.length < 20) {
+        alert('Please add your Supabase URL and Anon Key in the code first!');
+        return;
+    }
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+function saveSession(pin) {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ pin, authenticated: true, timestamp: Date.now() }));
+}
+
+function checkSession() {
+    try {
+        const data = sessionStorage.getItem(SESSION_KEY);
+        return data ? JSON.parse(data) : null;
+    } catch (e) { return null; }
+}
+
+function clearSession() {
+    sessionStorage.removeItem(SESSION_KEY);
+}
+
+function showPinScreen() {
+    setupPinScreen();
+    document.getElementById('pinScreen').classList.remove('hidden');
+    document.getElementById('appContainer').classList.remove('active');
+}
+
+function showAppLoading() {
+    document.getElementById('pinLoading').classList.add('show');
+    document.getElementById('pinError').classList.remove('show');
+}
+
+function setupPinScreen() {
+    const input = document.getElementById('pinRealInput');
+    const wrapper = document.getElementById('pinInputWrapper');
+    input.value = '';
+    updatePinDots(0);
+    
+    wrapper.addEventListener('click', () => input.focus());
+    
+    input.addEventListener('input', () => {
+        let val = input.value.replace(/\D/g, '');
+        if (val.length > 5) val = val.slice(0, 5);
+        input.value = val;
+        updatePinDots(val.length);
+        document.getElementById('pinError').classList.remove('show');
+        if (val.length === 5) setTimeout(() => checkPin(val), 150);
+    });
+    
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && input.value.length === 5) checkPin(input.value);
+    });
+    
+    setTimeout(() => input.focus(), 500);
+    document.getElementById('pinBox').addEventListener('click', (e) => {
+        if (e.target !== input) input.focus();
+    });
+}
+
+function updatePinDots(filled) {
+    document.querySelectorAll('.pin-dot').forEach((dot, i) => dot.classList.toggle('filled', i < filled));
+}
+
+async function checkPin(pin) {
+    if (pin !== CORRECT_PIN) {
+        showPinError();
+        return;
+    }
+    currentPin = pin;
+    document.getElementById('pinRealInput').blur();
+    document.getElementById('pinLoading').classList.add('show');
+    document.getElementById('pinError').classList.remove('show');
+    
+    try {
+        await loadData();
+        saveSession(pin);
+        document.getElementById('pinScreen').classList.add('hidden');
+        document.getElementById('appContainer').classList.add('active');
+        updateUI();
+        showToast('Welcome back!', 'success');
+    } catch (err) {
+        console.error(err);
+        document.getElementById('pinLoading').classList.remove('show');
+        document.getElementById('pinError').textContent = 'Failed to load data.';
+        document.getElementById('pinError').classList.add('show');
+        currentPin = null;
+    }
+}
+
+function showPinError() {
+    const input = document.getElementById('pinRealInput');
+    document.getElementById('pinError').textContent = 'Incorrect PIN. Please try again.';
+    document.getElementById('pinError').classList.add('show');
+    updatePinDots(0);
+    input.value = '';
+    setTimeout(() => {
+        input.focus();
+        document.getElementById('pinError').classList.remove('show');
+    }, 2000);
+}
+
+function lockApp() {
+    clearSession();
+    currentPin = null;
+    entries = [];
+    document.getElementById('pinRealInput').value = '';
+    updatePinDots(0);
+    document.getElementById('pinScreen').classList.remove('hidden');
+    document.getElementById('appContainer').classList.remove('active');
+    document.getElementById('pinLoading').classList.remove('show');
+    document.getElementById('pinError').classList.remove('show');
+    setupPinScreen();
+    showToast('Logged out successfully', 'success');
+}
+
+async function loadData() {
+    if (!supabaseClient || !currentPin) return;
+    setSyncStatus('syncing');
+    
+    const { data, error } = await supabaseClient
+        .from('borrow_lend')
+        .select('*')
+        .eq('user_pin', currentPin)
+        .order('date', { ascending: false });
+    
+    if (error) throw error;
+    entries = data || [];
+    setSyncStatus('online');
+}
+
+function setSyncStatus(status) {
+    const el = document.getElementById('syncStatus');
+    if (status === 'syncing') {
+        el.className = 'sync-status syncing';
+        el.innerHTML = '<i class="fas fa-sync fa-spin"></i> <span>Syncing...</span>';
+    } else {
+        el.className = 'sync-status online';
+        el.innerHTML = '<i class="fas fa-cloud"></i> <span>Synced</span>';
+    }
+}
+
+function setEntryType(type) {
+    entryType = type;
+    document.getElementById('btnGiven').classList.toggle('active', type === 'given');
+    document.getElementById('btnTaken').classList.toggle('active', type === 'taken');
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    renderEntries();
+}
+
+function updateUI() {
+    updateStats();
+    renderEntries();
+}
+
+function updateStats() {
+    const given = entries.filter(e => e.type === 'given' && e.status === 'pending')
+        .reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const taken = entries.filter(e => e.type === 'taken' && e.status === 'pending')
+        .reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const pending = entries.filter(e => e.status === 'pending').length;
+    
+    document.getElementById('totalGiven').textContent = formatCurrency(given);
+    document.getElementById('totalTaken').textContent = formatCurrency(taken);
+    document.getElementById('netBalance').textContent = formatCurrency(given - taken);
+    document.getElementById('pendingCount').textContent = pending;
+}
+
+function formatCurrency(num) {
+    return '৳' + (num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+}
+
+function isOverdue(dateStr) {
+    if (!dateStr) return false;
+    return new Date(dateStr) < new Date(new Date().toISOString().split('T')[0]);
+}
+
+function renderEntries() {
+    const list = document.getElementById('entryList');
+    
+    let filtered = entries;
+    if (currentTab !== 'all') {
+        if (currentTab === 'pending') {
+            filtered = entries.filter(e => e.status === 'pending');
+        } else {
+            filtered = entries.filter(e => e.type === currentTab);
+        }
+    }
+    
+    if (filtered.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-handshake"></i>
+                <h3>No records found</h3>
+                <p>${currentTab === 'all' ? 'Add your first entry above' : 'Nothing in this category'}</p>
+            </div>`;
+        return;
+    }
+    
+    list.innerHTML = filtered.map(e => {
+        const isGiven = e.type === 'given';
+        const isReturned = e.status === 'returned';
+        const overdue = e.status === 'pending' && isOverdue(e.reminder_date);
+        
+        return `
+            <div class="entry-item ${isReturned ? 'returned' : ''}">
+                <div class="entry-icon" style="background: ${isGiven ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)'}; color: ${isGiven ? 'var(--danger)' : 'var(--warning)'};">
+                    <i class="fas ${isGiven ? 'fa-arrow-up' : 'fa-arrow-down'}"></i>
+                </div>
+                <div class="entry-details">
+                    <div class="entry-title">${escapeHtml(e.person_name)}</div>
+                    <div class="entry-meta">
+                        <span><i class="fas fa-calendar"></i> ${formatDate(e.date)}</span>
+                        ${e.reminder_date ? `<span style="color: ${overdue ? 'var(--danger)' : 'var(--text-secondary)'};"><i class="fas fa-bell"></i> ${formatDate(e.reminder_date)} ${overdue ? '(Overdue)' : ''}</span>` : ''}
+                        ${e.notes ? `<span><i class="fas fa-sticky-note"></i> ${escapeHtml(e.notes)}</span>` : ''}
+                    </div>
+                </div>
+                <div style="text-align: right; flex-shrink: 0;">
+                    <div class="entry-amount ${isGiven ? 'given' : 'taken'}">
+                        ${isGiven ? '-' : '+'}${formatCurrency(e.amount)}
+                    </div>
+                    <span class="badge ${e.status === 'returned' ? 'badge-returned' : overdue ? 'badge-overdue' : 'badge-pending'}">
+                        ${e.status === 'returned' ? 'Settled' : overdue ? 'Overdue' : 'Pending'}
+                    </span>
+                </div>
+                <div class="entry-actions">
+                    ${e.status === 'pending' ? `
+                    <button class="btn-icon btn-sm" style="width: 32px; height: 32px; color: var(--success);" onclick="markReturned('${e.id}')" title="Mark as Settled">
+                        <i class="fas fa-check"></i>
+                    </button>` : ''}
+                    <button class="btn-icon btn-sm" style="width: 32px; height: 32px; color: var(--danger);" onclick="deleteEntry('${e.id}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+}
+
+async function saveEntry() {
+    const name = document.getElementById('entryName').value.trim();
+    const amount = parseFloat(document.getElementById('entryAmount').value);
+    const date = document.getElementById('entryDate').value;
+    const reminder = document.getElementById('entryReminder').value;
+    const notes = document.getElementById('entryNotes').value.trim();
+    
+    if (!name || !amount || amount <= 0 || !date) {
+        showToast('Please fill Name, Amount and Date', 'error');
+        return;
+    }
+    
+    setSyncStatus('syncing');
+    const { error } = await supabaseClient.from('borrow_lend').insert([{
+        user_pin: currentPin,
+        type: entryType,
+        person_name: name,
+        amount,
+        date,
+        reminder_date: reminder || null,
+        status: 'pending',
+        notes: notes || null
+    }]);
+    
+    if (error) {
+        showToast('Failed to save entry', 'error');
+        setSyncStatus('online');
+        return;
+    }
+    
+    await loadData();
+    updateUI();
+    document.getElementById('entryName').value = '';
+    document.getElementById('entryAmount').value = '';
+    document.getElementById('entryReminder').value = '';
+    document.getElementById('entryNotes').value = '';
+    showToast('Entry saved to cloud!', 'success');
+}
+
+async function markReturned(id) {
+    setSyncStatus('syncing');
+    const { error } = await supabaseClient
+        .from('borrow_lend')
+        .update({ status: 'returned' })
+        .eq('id', id);
+    
+    if (error) {
+        showToast('Update failed', 'error');
+        setSyncStatus('online');
+        return;
+    }
+    
+    await loadData();
+    updateUI();
+    showToast('Marked as settled!', 'success');
+}
+
+async function deleteEntry(id) {
+    if (!confirm('Are you sure you want to delete this entry?')) return;
+    
+    setSyncStatus('syncing');
+    const { error } = await supabaseClient.from('borrow_lend').delete().eq('id', id);
+    if (error) {
+        showToast('Delete failed', 'error');
+        setSyncStatus('online');
+        return;
+    }
+    
+    await loadData();
+    updateUI();
+    showToast('Entry deleted', 'success');
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('dark');
+    const icon = document.getElementById('themeIcon');
+    icon.className = document.body.classList.contains('dark') ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function showToast(message, type) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+        <span>${message}</span>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// ========== END OF PART 1 ==========
+// Type "continue" to receive Part 2 (Supabase setup instructions + closing tags)
+  // Close modals on outside click
+document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('active');
+    });
+});
+</script>
+</body>
+</html>
