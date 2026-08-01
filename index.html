@@ -8,7 +8,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
+    <link rel="stylesheet" href="src/css/styles.css">
+    <script src="src/js/config.js"></script>
+    <script src="src/js/auth.js"></script>
+</head>
+<body class="dark">
         :root {
             --primary: #6366f1;
             --primary-dark: #4f46e5;
@@ -2006,39 +2010,6 @@
 </head>
 <body class="dark">
 
-<!-- PIN Screen -->
-<div class="pin-screen" id="pinScreen">
-    <div class="pin-glow"></div>
-    <div class="pin-box" id="pinBox">
-        <i class="fas fa-wallet" style="font-size: 3rem; color: #818cf8; margin-bottom: 1rem; filter: drop-shadow(0 0 12px rgba(129,140,248,0.4));"></i>
-        <h2 style="margin-bottom: 0.5rem; color: #f1f5f9;">Expense Tracker</h2>
-        <p style="color: #94a3b8; margin-bottom: 0.5rem;">Enter your 5-digit PIN to continue</p>
-        <div class="pin-input-wrapper" id="pinInputWrapper">
-            <input 
-                type="tel" 
-                class="pin-real-input" 
-                id="pinRealInput"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                maxlength="5"
-                autocomplete="off"
-                autocorrect="off"
-                autocapitalize="off"
-                spellcheck="false"
-            >
-            <div class="pin-dots" id="pinDots">
-                <div class="pin-dot"></div>
-                <div class="pin-dot"></div>
-                <div class="pin-dot"></div>
-                <div class="pin-dot"></div>
-                <div class="pin-dot"></div>
-            </div>
-        </div>
-        <p class="pin-error" id="pinError">Incorrect PIN. Please try again.</p>
-        <p class="pin-loading" id="pinLoading"><span class="spinner" style="border-color: #818cf833; border-top-color: #818cf8; vertical-align: middle; margin-right: 8px;"></span>Loading your data...</p>
-    </div>
-</div>
-
 <!-- Main App -->
 <div class="app-container" id="appContainer">
     <!-- Header -->
@@ -2709,25 +2680,26 @@ document.addEventListener('DOMContentLoaded', () => {
     initDateFilter();
     initBulkDropdown();
     initAIChat();
-    
-    const session = checkSession();
-    if (session && session.authenticated) {
-        currentPin = session.pin;
+
+    // Check if user is logged in with new auth system
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.id) {
+        // User is logged in, load their data
         showAppLoading();
         loadDataFromCloud().then(() => {
-            document.getElementById('pinScreen').classList.add('hidden');
             document.getElementById('appContainer').classList.add('active');
             updateUI();
-            showToast('Welcome back!', 'success');
+            updateUserDisplay();
+            showToast('Welcome back, ' + currentUser.name.split(' ')[0] + '!', 'success');
         }).catch(err => {
             console.error(err);
-            clearSession();
-            showPinScreen();
+            window.location.href = '/login';
         });
     } else {
-        showPinScreen();
+        // Not logged in, redirect to login page
+        window.location.href = '/login';
     }
-    
+
     document.getElementById('date').valueAsDate = new Date();
     setupMonthlyTargetInputs();
 });
