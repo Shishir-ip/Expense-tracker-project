@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Expense Tracker</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/src/css/styles.css">
+    <style>
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem;
+        }
+        .auth-box {
+            background: rgba(255,255,255,0.95);
+            padding: 2.5rem;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            max-width: 420px;
+            width: 100%;
+            animation: slideUp 0.5s ease-out;
+        }
+        .auth-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .auth-subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+            font-size: 0.9rem;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .auth-links {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .auth-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+        }
+        .remember-me label {
+            font-size: 0.9rem;
+            color: #64748b;
+            cursor: pointer;
+        }
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .error-message.show {
+            display: block;
+        }
+        .success-message {
+            background: #d1fae5;
+            color: #059669;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .success-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1 class="auth-title">Welcome Back</h1>
+            <p class="auth-subtitle">Login to access your expense tracker</p>
+            
+            <div id="errorMessage" class="error-message"></div>
+            <div id="successMessage" class="success-message"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">Email or Username</label>
+                    <input type="text" id="identifier" class="form-input" placeholder="Enter email or username" required autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">PIN (6 digits)</label>
+                    <input type="password" id="pin" class="form-input" placeholder="Enter your 6-digit PIN" maxlength="6" pattern="\d{6}" required autocomplete="current-password">
+                </div>
+                
+                <div class="remember-me">
+                    <input type="checkbox" id="rememberMe">
+                    <label for="rememberMe">Remember me on this device</label>
+                </div>
+                
+                <button type="submit" class="btn-primary" id="loginBtn">
+                    <span>Login</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+            
+            <div class="auth-links">
+                <p><a href="/forgot-password">Forgot Password?</a></p>
+                <p style="margin-top: 1rem;">Don't have an account? <a href="/signup">Sign Up</a></p>
+                <p style="margin-top: 0.5rem;"><a href="/">Back to Home</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/src/js/config.js"></script>
+    <script src="/src/js/auth.js"></script>
+    <script>
+        // Initialize Supabase
+        initSupabase();
+        
+        // Check if already logged in
+        if (isAuthenticated()) {
+            window.location.href = '/';
+        }
+        
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const loginBtn = document.getElementById('loginBtn');
+        
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.classList.add('show');
+            successMessage.classList.remove('show');
+        }
+        
+        function showSuccess(msg) {
+            successMessage.textContent = msg;
+            successMessage.classList.add('show');
+            errorMessage.classList.remove('show');
+        }
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const identifier = document.getElementById('identifier').value.trim();
+            const pin = document.getElementById('pin').value.trim();
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            if (!identifier || !pin) {
+                showError('Please fill in all fields');
+                return;
+            }
+            
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+            
+            try {
+                const result = await login(identifier, pin, rememberMe);
+                
+                if (result.error) {
+                    showError(result.error);
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<span>Login</span><i class="fas fa-arrow-right"></i>';
+                } else {
+                    showSuccess(result.message);
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                }
+            } catch (err) {
+                showError('An unexpected error occurred');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<span>Login</span><i class="fas fa-arrow-right"></i>';
+            }
+        });
+    </script>
+</body>
+</html>

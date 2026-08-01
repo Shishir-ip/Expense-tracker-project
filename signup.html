@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Expense Tracker</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/src/css/styles.css">
+    <style>
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem;
+        }
+        .auth-box {
+            background: rgba(255,255,255,0.95);
+            padding: 2.5rem;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            max-width: 420px;
+            width: 100%;
+            animation: slideUp 0.5s ease-out;
+        }
+        .auth-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .auth-subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+            font-size: 0.9rem;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .auth-links {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .auth-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .error-message.show {
+            display: block;
+        }
+        .success-message {
+            background: #d1fae5;
+            color: #059669;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .success-message.show {
+            display: block;
+        }
+        .otp-section {
+            display: none;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .otp-section.show {
+            display: block;
+        }
+        .otp-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1.25rem;
+            text-align: center;
+            letter-spacing: 0.5rem;
+            font-weight: 700;
+        }
+        .otp-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .info-note {
+            background: #eff6ff;
+            color: #1e40af;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1 class="auth-title">Create Account</h1>
+            <p class="auth-subtitle">Join us to start tracking your expenses</p>
+            
+            <div id="errorMessage" class="error-message"></div>
+            <div id="successMessage" class="success-message"></div>
+            
+            <div class="info-note">
+                <i class="fas fa-info-circle"></i> Note: Email must end with @gmail.com. You'll receive a verification code after signing up.
+            </div>
+            
+            <form id="signupForm">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" id="name" class="form-input" placeholder="Enter your full name" required autocomplete="name">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email (@gmail.com)</label>
+                    <input type="email" id="email" class="form-input" placeholder="yourname@gmail.com" required autocomplete="email">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="username" class="form-input" placeholder="Choose a unique username" required autocomplete="username" minlength="3">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">PIN (6 digits)</label>
+                    <input type="password" id="pin" class="form-input" placeholder="Create a 6-digit PIN" maxlength="6" pattern="\d{6}" required autocomplete="new-password">
+                </div>
+                
+                <button type="submit" class="btn-primary" id="signupBtn">
+                    <span>Create Account</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+            
+            <!-- OTP Verification Section -->
+            <div id="otpSection" class="otp-section">
+                <h3 style="text-align: center; margin-bottom: 1rem; color: #1e293b;">Verify Your Email</h3>
+                <p style="text-align: center; color: #64748b; margin-bottom: 1rem; font-size: 0.9rem;">
+                    Enter the 6-digit code sent to your email
+                </p>
+                <div class="form-group">
+                    <input type="text" id="otpInput" class="otp-input" placeholder="000000" maxlength="6" pattern="\d{6}">
+                </div>
+                <button type="button" class="btn-primary" id="verifyBtn" onclick="verifyOTP()">
+                    <span>Verify & Continue</span>
+                    <i class="fas fa-check"></i>
+                </button>
+            </div>
+            
+            <div class="auth-links">
+                <p>Already have an account? <a href="/login">Login</a></p>
+                <p style="margin-top: 0.5rem;"><a href="/">Back to Home</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/src/js/config.js"></script>
+    <script src="/src/js/auth.js"></script>
+    <script>
+        initSupabase();
+        
+        if (isAuthenticated()) {
+            window.location.href = '/';
+        }
+        
+        const signupForm = document.getElementById('signupForm');
+        const otpSection = document.getElementById('otpSection');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const signupBtn = document.getElementById('signupBtn');
+        
+        let pendingEmail = '';
+        
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.classList.add('show');
+            successMessage.classList.remove('show');
+        }
+        
+        function showSuccess(msg) {
+            successMessage.textContent = msg;
+            successMessage.classList.add('show');
+            errorMessage.classList.remove('show');
+        }
+        
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const pin = document.getElementById('pin').value.trim();
+            
+            if (!name || !email || !username || !pin) {
+                showError('Please fill in all fields');
+                return;
+            }
+            
+            if (!email.endsWith('@gmail.com')) {
+                showError('Email must end with @gmail.com');
+                return;
+            }
+            
+            if (!/^\d{6}$/.test(pin)) {
+                showError('PIN must be exactly 6 digits');
+                return;
+            }
+            
+            signupBtn.disabled = true;
+            signupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
+            
+            try {
+                const result = await signUp(email, pin, name, username);
+                
+                if (result.error) {
+                    showError(result.error);
+                    signupBtn.disabled = false;
+                    signupBtn.innerHTML = '<span>Create Account</span><i class="fas fa-arrow-right"></i>';
+                } else {
+                    pendingEmail = result.email;
+                    showSuccess(result.message);
+                    
+                    // Show OTP section
+                    signupForm.style.display = 'none';
+                    otpSection.classList.add('show');
+                    document.querySelector('.info-note').style.display = 'none';
+                    
+                    // In demo mode, show OTP in console
+                    setTimeout(() => {
+                        alert('DEMO MODE: Check browser console for OTP code');
+                    }, 500);
+                }
+            } catch (err) {
+                showError('An unexpected error occurred');
+                signupBtn.disabled = false;
+                signupBtn.innerHTML = '<span>Create Account</span><i class="fas fa-arrow-right"></i>';
+            }
+        });
+        
+        async function verifyOTP() {
+            const otp = document.getElementById('otpInput').value.trim();
+            
+            if (!otp || !/^\d{6}$/.test(otp)) {
+                showError('Please enter a valid 6-digit OTP');
+                return;
+            }
+            
+            const verifyBtn = document.getElementById('verifyBtn');
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            
+            try {
+                const result = await verifyEmailOTP(pendingEmail, otp);
+                
+                if (result.error) {
+                    showError(result.error);
+                    verifyBtn.disabled = false;
+                    verifyBtn.innerHTML = '<span>Verify & Continue</span><i class="fas fa-check"></i>';
+                } else {
+                    showSuccess(result.message);
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1500);
+                }
+            } catch (err) {
+                showError('Failed to verify OTP');
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = '<span>Verify & Continue</span><i class="fas fa-check"></i>';
+            }
+        }
+    </script>
+</body>
+</html>

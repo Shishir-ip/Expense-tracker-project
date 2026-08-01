@@ -1,0 +1,32 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/borrow", "destination": "/borrow.html" },
+    { "source": "/transactions", "destination": "/transactions.html" },
+    { "source": "/insights", "destination": "/insights.html" },
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/signup", "destination": "/signup.html" },
+    { "source": "/forgot-password", "destination": "/forgot-password.html" },
+    { "source": "/account", "destination": "/account.html" }
+  ],
+  "headers": [
+    {
+      "source": "/src/js/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/src/css/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}
