@@ -2,8 +2,8 @@
 // CONFIGURATION - Load from environment or use defaults
 // ============================================================
 const CONFIG = {
-    SUPABASE_URL: 'https://hjblscnpnnsvkjpbydtl.supabase.co',
-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhqYmxzY25wbm5zdmtqcGJ5ZHRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3ODQ0NjYsImV4cCI6MjA5NzM2MDQ2Nn0.f1rfynEbzFBahYRkAyMpSGOWpNQAS0XRcIf7hMlK92U',
+    SUPABASE_URL: 'https://shdwkpxxnkiaugzgixxb.supabase.co',
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoZHdrcHh4bmtpYXVnemdpeHhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MTE1MjksImV4cCI6MjEwMTE4NzUyOX0.E63GJ03W9qiuaQY8_UQ8m03PhgMXiCLCW4ClUihd5Ls',
     OPENROUTER_API_KEY: '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',
     OPENROUTER_API_URL: 'https://openrouter.ai/api/v1/chat/completions',
     OPENROUTER_MODEL: 'openrouter/free',
